@@ -650,3 +650,139 @@ main.page {
     transform: scale(0.85);
   }
 }
+
+/* ==================================================
+   12. CARTOON TOY & SECRET ADMIN ANIMATIONS
+   ================================================== */
+.animate-toy-idle {
+  animation: toyIdle 3.8s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+@keyframes toyIdle {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.015);
+  }
+}
+
+.transform-origin-left-ear {
+  transform-origin: 44px 40px;
+}
+
+.transform-origin-right-ear {
+  transform-origin: 116px 40px;
+}
+
+.animate-ear-left {
+  animation: earTwitchLeft 6s ease-in-out infinite;
+}
+
+.animate-ear-right {
+  animation: earTwitchRight 6s ease-in-out infinite;
+}
+
+@keyframes earTwitchLeft {
+  0%, 88%, 100% {
+    transform: rotate(0deg);
+  }
+  92% {
+    transform: rotate(-10deg);
+  }
+  96% {
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes earTwitchRight {
+  0%, 88%, 100% {
+    transform: rotate(0deg);
+  }
+  92% {
+    transform: rotate(10deg);
+  }
+  96% {
+    transform: rotate(-4deg);
+  }
+}
+
+@keyframes floatFade {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.7);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-14px) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-28px) scale(0.9);
+  }
+}
+
+.animate-float-fade {
+  animation: floatFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Auth Stage & Parallel Vertical Alignment */
+.auth-stage {
+  width: 100%;
+  max-width: 480px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+}
+
+.auth-brand-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.auth-card-container {
+  width: 100%;
+  position: relative;
+}
+
+.toy-desktop-dock {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 20;
+}
+
+@media (min-width: 960px) {
+  .toy-desktop-dock {
+    margin-top: 0;
+    position: absolute;
+    left: calc(100% + 36px);
+    top: 50%;
+    transform: translateY(-50%);
+  }
+}
+
+/* Form Transition Animation */
+.form-transition-enter {
+  animation: formFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes formFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
