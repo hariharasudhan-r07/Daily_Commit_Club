@@ -6,7 +6,43 @@ const AuthContext = createContext({});
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Check if authenticated user has admin privileges
+  const checkAdminRole = async (userId) => {
+    if (!userId) {
+      setIsAdmin(false);
+      return false;
+    }
+    try {
+      // 1. Check via check_is_admin RPC function
+      const { data: rpcData, error: rpcError } = await supabase.rpc('check_is_admin');
+      if (!rpcError && rpcData === true) {
+        setIsAdmin(true);
+        return true;
+      }
+
+      // 2. Fallback direct table query on admin_roles with user id
+      const { data: roleData, error: roleError } = await supabase
+        .from('admin_roles')
+        .select('username, role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!roleError && roleData && roleData.role) {
+        setIsAdmin(true);
+        return true;
+      }
+
+      setIsAdmin(false);
+      return false;
+    } catch (err) {
+      console.warn('Admin check warning:', err);
+      setIsAdmin(false);
+      return false;
+    }
+  };
 
   // Load profile for authenticated user
   const fetchProfile = async (userId) => {
@@ -37,10 +73,14 @@ export const AuthProvider = ({ children }) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setUser(session.user);
-          await fetchProfile(session.user.id);
+          await Promise.all([
+            fetchProfile(session.user.id),
+            checkAdminRole(session.user.id)
+          ]);
         } else {
           setUser(null);
           setProfile(null);
+          setIsAdmin(false);
         }
       } catch (err) {
         console.error('Error checking session:', err);
@@ -55,10 +95,14 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setUser(session.user);
-        await fetchProfile(session.user.id);
+        await Promise.all([
+          fetchProfile(session.user.id),
+          checkAdminRole(session.user.id)
+        ]);
       } else {
         setUser(null);
         setProfile(null);
+        setIsAdmin(false);
       }
       setLoading(false);
     });
@@ -254,19 +298,119 @@ export const AuthProvider = ({ children }) => {
     return true;
   };
 
+  // Dedicated Admin Login flow (strictly verified against database admin roles)
+  const adminLogin = async ({ username, password }) => {
+    const inputClean = (username || '').trim();
+    if (!inputClean || !password) {
+      throw new Error('Please enter both admin username and password.');
+    }
+
+    let targetEmail = null;
+    if (inputClean.includes('@')) {
+      targetEmail = inputClean.toLowerCase();
+    } else {
+      // 1. Resolve email via get_login_email RPC (which checks admin_roles first)
+      const { data: emailData, error: rpcErr } = await supabase.rpc('get_login_email', {
+        user_identifier: inputClean
+      });
+
+      if (!rpcErr && emailData && emailData.length > 0 && emailData[0].email) {
+        targetEmail = emailData[0].email;
+      } else {
+        // Fallback internal admin email pattern if Simon
+        targetEmail = inputClean.toLowerCase() === 'simon'
+          ? 'simon.admin@dailycommitclub.internal'
+          : inputClean;
+      }
+    }
+
+    // 2. Authenticate with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: targetEmail,
+      password: password
+    });
+
+    if (authError) {
+      throw new Error('Invalid admin credentials. Please verify username and password.');
+    }
+
+    if (!authData?.user) {
+      throw new Error('Authentication failed. No user returned.');
+    }
+
+    // 3. Strictly verify admin role in backend
+    const isVerifiedAdmin = await checkAdminRole(authData.user.id);
+    if (!isVerifiedAdmin) {
+      // If user authenticated but lacks admin privileges, reject immediately
+      await supabase.auth.signOut();
+      setUser(null);
+      setProfile(null);
+      setIsAdmin(false);
+      throw new Error('Access denied: This account does not possess administrator privileges.');
+    }
+
+    setUser(authData.user);
+    await fetchProfile(authData.user.id);
+    setIsAdmin(true);
+    return authData.user;
+  };
+
+  // Admin: Adjust coffee debt with audit logging
+  const adjustCoffeeDebt = async ({ targetUserId, newDebt, action = 'ADJUST', note = '' }) => {
+    const { data, error } = await supabase.rpc('admin_adjust_coffee_debt', {
+      p_target_user_id: targetUserId,
+      p_new_debt: Math.max(0, parseInt(newDebt, 10)),
+      p_action: action,
+      p_note: note
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Failed to adjust member coffee debt.');
+    }
+
+    return data;
+  };
+
+  // Admin: Fetch audit logs
+  const fetchAuditLogs = async (limit = 50) => {
+    try {
+      const { data, error } = await supabase.rpc('get_admin_audit_logs', { p_limit: limit });
+      if (error) {
+        // Direct table fallback
+        const { data: tableLogs, error: tableErr } = await supabase
+          .from('admin_audit_logs')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(limit);
+        if (tableErr) throw tableErr;
+        return tableLogs || [];
+      }
+      return data || [];
+    } catch (err) {
+      console.warn('Error retrieving audit logs:', err.message);
+      return [];
+    }
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
+    setIsAdmin(false);
   };
 
   return (
     <AuthContext.Provider value={{ 
       user, 
       profile, 
+      isAdmin,
       loading, 
       register, 
       login, 
+      adminLogin,
+      checkAdminRole,
+      adjustCoffeeDebt,
+      fetchAuditLogs,
       resetPassword,
       logout, 
       refreshProfile: () => fetchProfile(user?.id) 
@@ -277,3 +421,4 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
+
