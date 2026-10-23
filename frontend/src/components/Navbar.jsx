@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Coffee, LayoutDashboard, Users, LogOut, Menu, X } from 'lucide-react';
+import { Coffee, LayoutDashboard, Users, LogOut, Menu, X, ShieldCheck } from 'lucide-react';
 
 export default function Navbar() {
-  const { profile, logout } = useAuth();
+  const { profile, logout, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -50,6 +50,13 @@ export default function Navbar() {
             <Coffee className="w-4 h-4 text-amber-400" />
             <span>Coffee Debt</span>
           </NavLink>
+
+          {isAdmin && (
+            <NavLink to="/admin" className={navItemClass}>
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>Admin</span>
+            </NavLink>
+          )}
         </nav>
 
         {/* Right Section: IST Badge + User Capsule */}
@@ -118,6 +125,13 @@ export default function Navbar() {
               <Coffee className="w-4 h-4 text-amber-400" />
               <span>Coffee Debt</span>
             </NavLink>
+
+            {isAdmin && (
+              <NavLink to="/admin" onClick={() => setMobileMenuOpen(false)} className={navItemClass}>
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>Admin Console</span>
+              </NavLink>
+            )}
           </nav>
 
           <div className="pt-3 border-t border-emerald-900/60 flex items-center justify-between">
