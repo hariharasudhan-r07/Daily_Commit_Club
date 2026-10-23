@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import CartoonToy from '../components/CartoonToy';
 import { 
   Coffee, 
   ArrowRight, 
@@ -11,11 +13,12 @@ import {
   User,
   Lock,
   Github,
-  Mail
+  Mail,
+  KeyRound
 } from 'lucide-react';
 
 export default function AuthPage() {
-  const [viewMode, setViewMode] = useState('login'); // 'login' | 'register' | 'forgot'
+  const [viewMode, setViewMode] = useState('login'); // 'login' | 'register' | 'forgot' | 'admin'
   
   // Login fields
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -36,12 +39,19 @@ export default function AuthPage() {
   // Forgot password field
   const [forgotIdentifier, setForgotIdentifier] = useState('');
 
+  // Admin secret login fields & state
+  const [adminUsername, setAdminUsername] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [noseClicks, setNoseClicks] = useState(0);
+
   // Status feedback
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, register, resetPassword } = useAuth();
+  const { login, register, resetPassword, adminLogin } = useAuth();
+  const navigate = useNavigate();
 
   const resetMessages = () => {
     setError('');
@@ -51,6 +61,9 @@ export default function AuthPage() {
   const handleSwitchMode = (mode) => {
     resetMessages();
     setViewMode(mode);
+    if (mode !== 'admin') {
+      setNoseClicks(0);
+    }
   };
 
   // Sign In Handler
@@ -156,65 +169,112 @@ export default function AuthPage() {
     }
   };
 
+  // Dedicated Admin Sign In Handler
+  const handleAdminSubmit = async (e) => {
+    e.preventDefault();
+    resetMessages();
+
+    if (!adminUsername.trim() || !adminPassword) {
+      setError('Please enter both admin username and password.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await adminLogin({ username: adminUsername.trim(), password: adminPassword });
+      navigate('/admin');
+    } catch (err) {
+      setError(err.message || 'Invalid admin credentials.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="auth-page relative overflow-hidden">
       {/* Background ambient lighting effects */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-10 right-1/4 w-[380px] h-[380px] bg-teal-500/5 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* Brand Header: Perfectly Centered & High Clarity */}
-      <div className="text-center mb-8 max-w-lg mx-auto relative z-10 flex flex-col items-center">
-        {/* Glow Icon */}
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/40 shadow-[0_0_25px_rgba(16,185,129,0.25)] text-emerald-400 mb-4 transition-transform hover:scale-105 duration-300">
-          <Coffee className="w-7 h-7 stroke-[2.2]" />
+      {/* Main Auth Stage: Center aligned in the viewport */}
+      <div className="auth-stage relative z-10 w-full max-w-[480px] mx-auto flex flex-col items-center">
+        
+        {/* Brand Header: In direct, parallel vertical alignment with the form card */}
+        <div className="auth-brand-header text-center mb-7 w-full flex flex-col items-center">
+          {/* Glow Icon */}
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/40 shadow-[0_0_25px_rgba(16,185,129,0.25)] text-emerald-400 mb-3.5 transition-transform hover:scale-105 duration-300">
+            <Coffee className="w-7 h-7 stroke-[2.2]" />
+          </div>
+          
+          {/* Main Title */}
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#ecfdf5] tracking-tight font-display-clean mb-2 text-center">
+            DAILY COMMIT CLUB
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-sm sm:text-base text-emerald-200/80 leading-relaxed font-sans-clean max-w-[420px] text-center">
+            Developer Accountability Club. Miss a daily commit before 8:00 PM IST, owe coffee ☕
+          </p>
         </div>
-        
-        {/* Main Title */}
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-[#ecfdf5] tracking-tight font-display-clean mb-3">
-          DAILY COMMIT CLUB
-        </h1>
 
-        {/* Clear Subtitle */}
-        <p className="text-sm sm:text-base text-emerald-200/80 leading-relaxed font-sans-clean max-w-md text-center">
-          Developer Accountability Club. Miss a daily commit before 8:00 PM IST, owe coffee ☕
-        </p>
-      </div>
+        {/* Card and Companion Wrapper */}
+        <div className="auth-card-container relative w-full">
+          {/* Main Auth Card with Polished Spacing */}
+          <div className="auth-card relative z-10 w-full">
+          
+          {/* Segmented Switcher (Sign In / Join Club) - Hidden in admin or forgot mode */}
+          {viewMode !== 'forgot' && viewMode !== 'admin' && (
+            <div className="tab-segmented mb-6">
+              <button
+                type="button"
+                onClick={() => handleSwitchMode('login')}
+                className={`tab-segmented-btn ${viewMode === 'login' ? 'active' : ''}`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSwitchMode('register')}
+                className={`tab-segmented-btn ${viewMode === 'register' ? 'active' : ''}`}
+              >
+                Join Club
+              </button>
+            </div>
+          )}
 
-      {/* Main Auth Card with Polished Spacing */}
-      <div className="auth-card relative z-10">
-        
-        {/* Segmented Switcher (Sign In / Join Club) */}
-        {viewMode !== 'forgot' && (
-          <div className="tab-segmented mb-6">
-            <button
-              type="button"
-              onClick={() => handleSwitchMode('login')}
-              className={`tab-segmented-btn ${viewMode === 'login' ? 'active' : ''}`}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSwitchMode('register')}
-              className={`tab-segmented-btn ${viewMode === 'register' ? 'active' : ''}`}
-            >
-              Join Club
-            </button>
-          </div>
-        )}
+          {/* Admin Header */}
+          {viewMode === 'admin' && (
+            <div className="flex items-center justify-between border-b border-emerald-900/60 pb-4 mb-6">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <h2 className="text-sm font-bold text-[#ecfdf5] uppercase tracking-wider font-display-clean">
+                  Admin Login
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSwitchMode('login')}
+                className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
+              >
+                ← Back to Sign In
+              </button>
+            </div>
+          )}
 
-        {viewMode === 'forgot' && (
-          <div className="flex items-center justify-between border-b border-emerald-900/60 pb-4 mb-6">
-            <h2 className="text-sm font-bold text-[#ecfdf5] uppercase tracking-wider font-display-clean">Reset Password</h2>
-            <button
-              type="button"
-              onClick={() => handleSwitchMode('login')}
-              className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
-            >
-              ← Back to Sign In
-            </button>
-          </div>
-        )}
+          {viewMode === 'forgot' && (
+            <div className="flex items-center justify-between border-b border-emerald-900/60 pb-4 mb-6">
+              <h2 className="text-sm font-bold text-[#ecfdf5] uppercase tracking-wider font-display-clean">Reset Password</h2>
+              <button
+                type="button"
+                onClick={() => handleSwitchMode('login')}
+                className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+              >
+                ← Back to Sign In
+              </button>
+            </div>
+          )}
 
         {/* Status Messages */}
         {error && (
@@ -481,14 +541,111 @@ export default function AuthPage() {
           </form>
         )}
 
+        {/* 4. SECRET ADMIN LOGIN FORM */}
+        {viewMode === 'admin' && (
+          <form onSubmit={handleAdminSubmit} className="space-y-5 form-transition-enter">
+            
+            <div className="p-3 bg-emerald-950/40 border border-emerald-800/50 rounded-xl text-xs text-emerald-200/90 leading-relaxed font-sans-clean flex items-center gap-2.5">
+              <KeyRound className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>Restricted administrator console. Requires authorized credentials.</span>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="admin-username" className="form-label">
+                Admin Username
+              </label>
+              <div className="input-container">
+                <input
+                  id="admin-username"
+                  type="text"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  required
+                  placeholder="e.g. Simon"
+                  value={adminUsername}
+                  onChange={(e) => setAdminUsername(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <div className="form-label">
+                <span>Admin Password</span>
+              </div>
+              <div className="input-container">
+                <input
+                  id="admin-password"
+                  type={showAdminPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                  placeholder="Enter admin password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="form-input"
+                  style={{ paddingRight: '44px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="input-icon-btn"
+                  title={showAdminPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full mt-2"
+              style={{ height: '48px' }}
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>{loading ? 'Verifying Admin...' : 'Sign In as Admin'}</span>
+            </button>
+
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => handleSwitchMode('login')}
+                className="text-xs font-semibold text-emerald-400/80 hover:text-emerald-300 transition-colors cursor-pointer"
+              >
+                ← Return to Member Login
+              </button>
+            </div>
+
+          </form>
+        )}
+
         {/* Protected by Supabase footer */}
         <div className="mt-6 pt-4 border-t border-emerald-900/50 flex items-center justify-center gap-2 text-xs text-emerald-300/60 font-sans-clean">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
           <span>Encrypted • Supabase Auth</span>
         </div>
 
+        </div>
+
+        {/* Secret Animated Cartoon Toy Companion */}
+        <div className="toy-desktop-dock">
+          <CartoonToy 
+            isAdminMode={viewMode === 'admin'}
+            onAdminToggle={(toAdmin) => {
+              resetMessages();
+              setViewMode(toAdmin ? 'admin' : 'login');
+              if (!toAdmin) setNoseClicks(0);
+            }}
+            noseClicks={noseClicks}
+            setNoseClicks={setNoseClicks}
+          />
+        </div>
+
       </div>
 
     </div>
+
+  </div>
   );
 }
+
