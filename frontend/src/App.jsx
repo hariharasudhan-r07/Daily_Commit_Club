@@ -5,6 +5,7 @@ import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
 import MembersPage from './pages/MembersPage';
 import CoffeePage from './pages/CoffeePage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 import Navbar from './components/Navbar';
 import { Coffee } from 'lucide-react';
 
@@ -37,6 +38,7 @@ function AuthenticatedApp() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/members" element={<MembersPage />} />
           <Route path="/coffee" element={<CoffeePage />} />
+          <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
