@@ -259,6 +259,7 @@ export const AuthProvider = ({ children }) => {
 
     setUser(authData.user);
     await fetchProfile(authData.user.id);
+    await checkAdminRole(authData.user.id);
     return authData.user;
   };
 

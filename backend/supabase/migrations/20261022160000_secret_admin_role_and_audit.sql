@@ -254,7 +254,15 @@ BEGIN
       raw_app_meta_data,
       raw_user_meta_data,
       created_at,
-      updated_at
+      updated_at,
+      confirmation_token,
+      recovery_token,
+      email_change_token_new,
+      email_change,
+      email_change_token_current,
+      phone_change,
+      phone_change_token,
+      reauthentication_token
     ) VALUES (
       '00000000-0000-0000-0000-000000000000',
       v_user_id,
@@ -266,12 +274,28 @@ BEGIN
       '{"provider":"email","providers":["email"]}'::jsonb,
       '{"full_name":"Simon","role":"admin"}'::jsonb,
       NOW(),
-      NOW()
+      NOW(),
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      ''
     );
   ELSE
     UPDATE auth.users
     SET encrypted_password = v_encrypted_pw,
-        updated_at = NOW()
+        updated_at = NOW(),
+        confirmation_token = COALESCE(confirmation_token, ''),
+        recovery_token = COALESCE(recovery_token, ''),
+        email_change_token_new = COALESCE(email_change_token_new, ''),
+        email_change = COALESCE(email_change, ''),
+        email_change_token_current = COALESCE(email_change_token_current, ''),
+        phone_change = COALESCE(phone_change, ''),
+        phone_change_token = COALESCE(phone_change_token, ''),
+        reauthentication_token = COALESCE(reauthentication_token, '')
     WHERE id = v_user_id;
   END IF;
 

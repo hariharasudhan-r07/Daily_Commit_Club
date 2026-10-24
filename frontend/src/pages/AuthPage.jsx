@@ -50,7 +50,7 @@ export default function AuthPage() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, register, resetPassword, adminLogin } = useAuth();
+  const { login, register, resetPassword, adminLogin, checkAdminRole } = useAuth();
   const navigate = useNavigate();
 
   const resetMessages = () => {
@@ -78,7 +78,13 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      await login({ name: loginIdentifier.trim(), password: loginPassword });
+      const loggedUser = await login({ name: loginIdentifier.trim(), password: loginPassword });
+      const isAdm = await checkAdminRole(loggedUser?.id);
+      if (isAdm) {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError(err.message || 'Invalid username or password.');
     } finally {
@@ -365,6 +371,18 @@ export default function AuthPage() {
                 className="font-semibold text-emerald-400 hover:text-emerald-300 hover:underline ml-1 cursor-pointer"
               >
                 Join Club
+              </button>
+            </div>
+
+            <div className="text-center pt-2 text-[11px] text-emerald-400/60 font-sans-clean flex items-center justify-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500/70" />
+              <span>Administrator?</span>
+              <button
+                type="button"
+                onClick={() => handleSwitchMode('admin')}
+                className="font-medium text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer"
+              >
+                Access Admin Portal
               </button>
             </div>
 
